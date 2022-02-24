@@ -7,9 +7,12 @@
   i, f, s, and b and extended types I, F, N, and T, and t, c and r. Where c and
   r are aliased to i.
   
- Tested working with TouchOSC input and output (well except for the extended
- functionality).  While basic bounds checking is happening it is likely that
- there are flaws with this.  This library has not yet been fuzzed.
+ Tested 2022-02-24 working with TouchOSC input and output (well except for the
+ extended functionality).  While basic bounds checking is happening it is
+ likely that there are flaws with this.  This library has not yet been
+ fuzzed.
+
+ Tested working on Linux and Windows 2022-02-24
   
  Copyright 2022 <>< cnlohr - you may use this file freely.
  
@@ -72,6 +75,8 @@ void minioscClose( miniosc * osc );
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #if defined(WINDOWS) || defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)|| defined(_WINDOWS )
 #define MINIOSCWIN 1
@@ -86,6 +91,7 @@ void minioscClose( miniosc * osc );
 	#include <string.h>
 	#include <unistd.h>
 	#include <netdb.h>
+	#include <poll.h>
 	#include <sys/socket.h>
 	#include <netinet/in.h>
 	#include <arpa/inet.h>
@@ -207,7 +213,7 @@ miniosc * minioscInit( int portin, int portout, char * addressout, int * miniosc
 	// But, experimentally, most wifi drivers respond better with 0xff.
 	int tos_local = 0xff;
 	socklen_t len = sizeof( tos_local );
-	if( setsockopt( m_sockfd, IPPROTO_IP, IP_TOS, &tos_local, sizeof( tos_local ) ) )
+	if( setsockopt( sock, IPPROTO_IP, IP_TOS, &tos_local, sizeof( tos_local ) ) )
 	{
 		// Not a big deal if this fails.  We can fail silently.  Alternatively
 		// we could after setting also check to make sure it was actually
@@ -431,7 +437,7 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 		r = select( 1, &fds, 0, 0, &timeout );
 		if( r == 0 ) r = FD_ISSET( osc->sock, &fds );
 	#else
-		pollfd pfd = { 0 };
+		struct pollfd pfd = { 0 };
 		pfd.fd = osc->sock;
 		pfd.events = POLLRDNORM;
 		r = poll( &pfd, 1, timeoutms );		
