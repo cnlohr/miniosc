@@ -5,10 +5,12 @@
 
 int main()
 {
+	miniosc * server = minioscInit( 12665, 0, 0 );
+	miniosc * client = minioscINit( 12665, "127.0.0.1", 0 );
+	
 
 	// Initialize a miniosc.  It mallocs the data in the return structure.  If there was an
 // error, it will return NULL, and minioscerrorcode will be populated if it was nonnull.
-miniosc * minioscInit( int portnumber, char * remoteAddressOrNull, int * minioscerrorcode );
 
 // Send an OSC message, this will pull the types off of varargs.
 //  'i': send an int, include an int in your varargs.
