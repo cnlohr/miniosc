@@ -62,3 +62,8 @@ int main()
 	}
 }
 ```
+
+## Future
+
+ * Make it possible to `#define` non-BSD sockets, to support systems like the ESP32 and ESP8266.
+ * Do more testing.
