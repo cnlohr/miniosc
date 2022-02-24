@@ -100,15 +100,8 @@ void minioscClose( miniosc * osc );
 	#define closesocket close
 #endif
 
-
-#ifdef __cplusplus
-#define RESTRICT
-#else
-#define RESTRICT restrict
-#endif
-
 // Internal functions
-static int _minioscAppend( RESTRICT char * start, RESTRICT char ** ptr, int max_len, int datalen, RESTRICT const char * data )
+static int _minioscAppend( char * start, char ** ptr, int max_len, int datalen, const char * data )
 {
 	int quad_byte_length = ((datalen + 3) & (~3));
 	if( *ptr - start + quad_byte_length >= max_len ) return MINIOSC_ERROR_OVERFLOW;
@@ -118,7 +111,7 @@ static int _minioscAppend( RESTRICT char * start, RESTRICT char ** ptr, int max_
 	return 0;
 }
 
-static int _minioscGetQBL( const char * start, const char ** here, int length )
+static int _minioscGetQBL( const char * start, char ** here, int length )
 {
 	// Note this function does not round up so it can be used with blobs.
 	const char * h = *here;
@@ -331,7 +324,7 @@ int minioscBundle( mobundle * mo, const char * address, const char * type, ... )
 	if( ret == 0 )
 	{
 		// No error, write in length of message.
-		int len = mo->bundleplace - (uint8_t*)bpl - 4;
+		int len = mo->bundleplace - (char*)bpl - 4;
 		if( len )
 		{
 			(*bpl) = htonl( len );
