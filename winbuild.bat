@@ -1,1 +1,1 @@
-tcc main.c
+tcc main.c -lws2_32

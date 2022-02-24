@@ -3,30 +3,30 @@
 #define MINIOSC_IMPLEMENTATION
 #include "miniosc.h"
 
+void rxcb( const char * address, const char * type, void ** parameters )
+{
+	printf( "RXCB: %s %s [%p %p] %f\n", address, type, type, parameters[0], (double)*((float*)parameters[0]) );
+}
+
 int main()
 {
-	miniosc * server = minioscInit( 12665, 0, 0 );
-	miniosc * client = minioscINit( 12665, "127.0.0.1", 0 );
-	
+	miniosc * osc = minioscInit( 9003, 9005, "127.0.0.1", 0 );
 
-	// Initialize a miniosc.  It mallocs the data in the return structure.  If there was an
-// error, it will return NULL, and minioscerrorcode will be populated if it was nonnull.
+	int frameno = 0;
+	while( 1 )
+	{
+		int r = minioscPoll( osc, 1, rxcb );
 
-// Send an OSC message, this will pull the types off of varargs.
-//  'i': send an int, include an int in your varargs.
-//  'f': send a float, include a float (or rather auto-promoted double) to your varargs.
-//  's': send a string, include a char * in your varargs.
-//  'b': send a blob, include an int and then a char * in your varargs. 
-// You must prefix your path with '/' and you must prefix type with ','
-int minioscSend( miniosc * osc, int flags, const char * path, const char * type, ... );
+		char strtosend[128];
+		sprintf( strtosend, "Frameno: %d", frameno );
+		minioscSend( osc, "/label1", ",s", strtosend );
 
-// Poll for an OSC message.
-//   - If the value is negative, there was an error, it reports the error.
-//   - If the value is zero, no messages were received, it was timed out.
-//   - If the value is positive, it reports the number of messages received and processed.
-int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * path, const char * type, void ** parameters ) );
+		mobundle bun = { 0 };
+		minioscBundle( &bun, "/text1", ",s", strtosend );
+		minioscBundle( &bun, "/label2", ",i", frameno&1 );
+		minioscBundle( &bun, "/box2", ",i", (frameno&255) );
+		minioscSendBundle( osc, &bun );
 
-// Close the socket. Free the memory.
-void minioscClose( miniosc * osc );
-
+		frameno++;
+	}
 }
