@@ -12,6 +12,8 @@ likely that there are flaws with this.  This library has not yet been
 fuzzed.
 
 Tested working on Linux and Windows 2022-02-24
+
+Tested working with VRChat 2022-02-25
  
 Copyright 2022 <>< cnlohr - you may use this file freely.
  

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #define MINIOSC_IMPLEMENTATION
 #include "miniosc.h"
@@ -15,7 +16,7 @@ int main()
 {
 	// 9003 is the input port, 9005 is the output port.
 	// Each is optional.
-	miniosc * osc = minioscInit( 9003, 9005, "127.0.0.1", 0 );
+	miniosc * osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
 
 	int frameno = 0;
 	while( 1 )
@@ -27,13 +28,15 @@ int main()
 		sprintf( strtosend, "Frameno: %d", frameno );
 		
 		// Immediately send a message
-		minioscSend( osc, "/label1", ",s", strtosend );
+	//	minioscSend( osc, "/label1", ",s", strtosend );
 
 		// Bundle messages together and send.
 		mobundle bun = { 0 };
-		minioscBundle( &bun, "/text1", ",s", strtosend );
-		minioscBundle( &bun, "/label2", ",i", frameno&1 );
-		minioscBundle( &bun, "/box2", ",i", (frameno&255) );
+		minioscBundle( &bun, "/avatar/parameters/parameter0", ",f", sin(frameno/100.) );//((frameno/20)%256)/255.0 );
+		minioscBundle( &bun, "/avatar/parameters/parameter1", ",f", ((frameno/100)%256)/255.0 );
+	//	minioscBundle( &bun, "/text1", ",s", strtosend );
+	//	minioscBundle( &bun, "/label2", ",i", frameno&1 );
+	//	minioscBundle( &bun, "/box2", ",i", (frameno&255) );
 		minioscSendBundle( osc, &bun );
 
 		frameno++;
