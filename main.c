@@ -17,12 +17,13 @@ int main()
 	// 9003 is the input port, 9005 is the output port.
 	// Each is optional.
 	miniosc * osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
+	miniosc * osc2 = minioscInit( 0, 9993, "127.0.0.1", 0 );
 
 	int frameno = 0;
 	while( 1 )
 	{
 		// Poll, waiting for up to 10 ms for a message.
-		int r = minioscPoll( osc, 10, rxcb );
+		int r = minioscPoll( osc, 40, rxcb );
 
 		char strtosend[128];
 		sprintf( strtosend, "Frameno: %d", frameno );
@@ -38,6 +39,12 @@ int main()
 	//	minioscBundle( &bun, "/label2", ",i", frameno&1 );
 	//	minioscBundle( &bun, "/box2", ",i", (frameno&255) );
 		minioscSendBundle( osc, &bun );
+
+
+		int cr = (frameno+0)    % 1536; if( cr > 768 ) cr = 1024-cr; if( cr > 255 ) cr = 255; if( cr < 0 ) cr = 0;
+		int cg = (frameno+512)  % 1536; if( cg > 768 ) cg = 1024-cg; if( cg > 255 ) cg = 255; if( cg < 0 ) cg = 0;
+		int cb = (frameno+1024) % 1536; if( cb > 768 ) cb = 1024-cb; if( cb > 255 ) cb = 255; if( cb < 0 ) cb = 0;
+		minioscSend( osc2, "/opc/zone6", ",r", cr|(cg<<8)|(cb<<16) );
 
 		frameno++;
 	}
