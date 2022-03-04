@@ -4,6 +4,8 @@
 #define MINIOSC_IMPLEMENTATION
 #include "miniosc.h"
 
+#include "os_generic.h"
+
 void rxcb( const char * address, const char * type, void ** parameters )
 {
 	// Called when a message is received.  Check "type" to get parameters 
@@ -12,18 +14,34 @@ void rxcb( const char * address, const char * type, void ** parameters )
 		(double)*((float*)parameters[0]) );
 }
 
+
+int frameno = 0;
+int r = 0;
+miniosc * osc;
+miniosc * osc2;
+
+void * thread( void * v )
+{
+	while( 1 )
+	{
+		getchar();
+		r++;
+	}
+}
+
 int main()
 {
 	// 9003 is the input port, 9005 is the output port.
 	// Each is optional.
-	miniosc * osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
-	miniosc * osc2 = minioscInit( 0, 9993, "127.0.0.1", 0 );
+	osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
+	osc2 = minioscInit( 0, 9993, "127.0.0.1", 0 );
 
-	int frameno = 0;
+	OGCreateThread( thread, 0 );
+
 	while( 1 )
 	{
 		// Poll, waiting for up to 10 ms for a message.
-		int r = minioscPoll( osc, 40, rxcb );
+		minioscPoll( osc, 15+, rxcb );
 
 		char strtosend[128];
 		sprintf( strtosend, "Frameno: %d", frameno );
@@ -35,6 +53,7 @@ int main()
 		mobundle bun = { 0 };
 		minioscBundle( &bun, "/avatar/parameters/parameter0", ",f", sin(frameno/100.) );//((frameno/20)%256)/255.0 );
 		minioscBundle( &bun, "/avatar/parameters/parameter1", ",f", ((frameno/100)%256)/255.0 );
+		minioscBundle( &bun, "/avatar/parameters/parameter2", ",f", (double)(r&1) );
 	//	minioscBundle( &bun, "/text1", ",s", strtosend );
 	//	minioscBundle( &bun, "/label2", ",i", frameno&1 );
 	//	minioscBundle( &bun, "/box2", ",i", (frameno&255) );
