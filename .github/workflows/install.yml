@@ -19,7 +19,7 @@ jobs:
             build-essential
       
     - name: Building
-      run: pwd && ls && make
+      run: make
 
     - name: Testing
       run: ./miniosctest
