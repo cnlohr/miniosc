@@ -6,8 +6,8 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    os: [ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
+    # Can we do this without a custom "container:"?
     env:
       GITHUB_CI: yes
     steps:
