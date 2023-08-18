@@ -1,5 +1,7 @@
 # miniosc
 
+[![miniosc](https://github.com/cnlohr/miniosc/actions/workflows/install.yml/badge.svg)](https://github.com/cnlohr/miniosc/actions/workflows/install.yml)
+
 Single-file-header OSC library for C (includes platform-independent sockets).
 
 It only supports a subset of the OSC protocol. #bundle, the basic types:
