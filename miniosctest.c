@@ -102,6 +102,6 @@ int main()
 	}
 	printf( "Totals: %d %d\n", totalRX, totalRXI );
 	if( totalRX == 90 && totalRXI == 652941 ) return 0;
-	fprintf( stderr, "Hmm, something may be wrong\n" );
+	fprintf( stderr, "\u001b[31mHmm, something may be wrong\n" );
 	return -99;
 }
