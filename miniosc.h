@@ -46,7 +46,7 @@ typedef struct
 
 // Initialize a miniosc.  It mallocs the data in the return structure.  If there was an
 // error, it will return NULL, and minioscerrorcode will be populated if it was nonnull.
-miniosc * minioscInit( int portin, int portout, char * addressout, int * minioscerrorcode );
+miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode );
 
 // Send an OSC message, this will pull the types off of varargs.
 //  'i', 'c' and 'r': send an int, include an int in your varargs.
@@ -65,7 +65,7 @@ int minioscSendBundle( miniosc * osc, mobundle * mo );
 //   - If the value is negative, there was an error, it reports the error.
 //   - If the value is zero, no messages were received, it was timed out.
 //   - If the value is positive, it reports the number of messages received and processed.
-int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * address, const char * type, void ** parameters ) );
+int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * address, const char * type, const void ** parameters ) );
 
 // Close the socket. Free the memory.
 void minioscClose( miniosc * osc );
@@ -130,7 +130,7 @@ static int _minioscGetQBL( const char * start, char ** here, int length )
 	return thislen;
 }
 
-miniosc * minioscInit( int portin, int portout, char * addressout, int * minioscerrorcode )
+miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode )
 {
 #ifdef MINIOSCWIN
 	WSADATA rep;
@@ -205,7 +205,6 @@ miniosc * minioscInit( int portin, int portout, char * addressout, int * miniosc
 	// Officially, 46<<2; //46 = Telephony, priority.
 	// But, experimentally, most wifi drivers respond better with 0xff.
 	int tos_local = 0xff;
-	socklen_t len = sizeof( tos_local );
 	if( setsockopt( sock, IPPROTO_IP, IP_TOS, &tos_local, sizeof( tos_local ) ) )
 	{
 		// Not a big deal if this fails.  We can fail silently.  Alternatively
@@ -214,7 +213,7 @@ miniosc * minioscInit( int portin, int portout, char * addressout, int * miniosc
 	}
 #endif
 	if( minioscerrorcode ) *minioscerrorcode = 0;
-	miniosc * ret = malloc( sizeof( miniosc ) );
+	miniosc * ret = (miniosc *)malloc( sizeof( miniosc ) );
 	ret->sock = sock;
 	return ret;
 }
@@ -267,7 +266,7 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 			const void * st = va_arg( ap, const void * );
 			int lensend = htonl( len );
 			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char*)&lensend ) ) ) return err;
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, st ) ) ) return err;
+			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, (const char*)st ) ) ) return err;
 			break;
 		}
 		case 'F':
@@ -280,7 +279,7 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 			return MINIOSC_ERROR_PARAMS;
 		}
 	}
-	return 0;	
+	return 0;
 }
 
 static int minioscSendData( miniosc * osc, int sendlen, const char * buffer )
@@ -292,7 +291,6 @@ static int minioscSendData( miniosc * osc, int sendlen, const char * buffer )
 
 int minioscSend( miniosc * osc, const char * address, const char * type, ... )
 {
-	int err;
 	char buffer[MINIOSCBUFFER];
 	char * bptr = buffer;
 	
@@ -342,7 +340,7 @@ int minioscSendBundle( miniosc * osc, mobundle * mo )
 	return minioscSendData( osc, sendlen, mo->bundledata );
 }
 
-static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)( const char * address, const char * type, void ** parameters ) )
+static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)( const char * address, const char * type, const void ** parameters ) )
 {
 	const char * name = *eptr;
 	int namelen = _minioscGetQBL( name, eptr, r );
@@ -353,7 +351,7 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 	if( namelen <= 0 || typelen <= 0 || name[0] != '/' || type[0] != ',' )
 		return MINIOSC_ERROR_PROTOCOL;
 
-	void * parameters[MINIOSCBUFFER/4]; // Worst-case scenario: all blobs.
+	const void * parameters[MINIOSCBUFFER/4]; // Worst-case scenario: all blobs.
 	int p = 0;
 	const char * ct;
 
@@ -383,10 +381,10 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 		{
 			char * st = *eptr;
 			int sl = _minioscGetQBL( buffer, eptr, r );
-			if( sl < 0 ) MINIOSC_ERROR_PROTOCOL;
+			if( sl < 0 ) return MINIOSC_ERROR_PROTOCOL;
 			if( sl == 0 )
 			{
-				parameters[p] = "\0\0\0\0";
+				parameters[p] = (const void*)"\0\0\0\0";
 				*eptr += 4;
 			}
 			else parameters[p++] = st;
@@ -400,7 +398,7 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 			char * st = *eptr;
 			int sl = _minioscGetQBL( buffer, eptr, r );
 			if( sl < 0 ) return MINIOSC_ERROR_PROTOCOL;
-			if( sl == 0 ) parameters[p++] = "\0\0\0\0";
+			if( sl == 0 ) parameters[p++] = (const void*)"\0\0\0\0";
 			else parameters[p++] = st;
 			break;
 		}
@@ -414,9 +412,10 @@ static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)(
 		}
 	}
 	callback( name, type, parameters );
+	return 0;
 }
 
-int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * address, const char * type, void ** parameters ) )
+int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * address, const char * type, const void ** parameters ) )
 {
 	int r;
 	// Do a poll.
@@ -437,21 +436,20 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 	#endif
 
 	if( r < 0 ) return MINIOSC_ERROR_TRANSPORT;
-	
+
 	// No data.
 	if( r == 0 ) return 0;
-	
+
 	char buffer[MINIOSCBUFFER];
 	r = recv( osc->sock, buffer, sizeof( buffer ), MSG_NOSIGNAL );
 	if( r <= 8 ) return MINIOSC_ERROR_TRANSPORT;
-	
+
 	char * eptr = buffer;
 	int rxed = 0;
-	int err = 0;
 
-	
 	if( memcmp( buffer, "#bundle", 8 ) == 0 )
 	{
+		int err = 0;
 		// Bundle
 		eptr += 16; // "#bundle\0" + timecode (we ignore timecode)
 		while( eptr - buffer < r - 4 )
@@ -459,12 +457,14 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 			int32_t tolen = htonl( *((int32_t*)eptr) );
 			char * ep2 = eptr;
 			err = minioscProcess( eptr, &ep2, tolen, callback );
+			if( err < 0 ) return err;
 			rxed++;
 		}
 	}
 	else
 	{
-		err = minioscProcess( buffer, &eptr, r, callback );
+		int err = minioscProcess( buffer, &eptr, r, callback );
+		if( err < 0 ) return err;
 		rxed = 1;
 	}
 	return rxed;

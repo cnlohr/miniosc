@@ -6,7 +6,7 @@
 
 #include "os_generic.h"
 
-void rxcb( const char * address, const char * type, void ** parameters )
+void rxcb( const char * address, const char * type, const void ** parameters )
 {
 	// Called when a message is received.  Check "type" to get parameters 
 	// This message just blindly assumes it's getting a float.
@@ -41,7 +41,7 @@ int main()
 	while( 1 )
 	{
 		// Poll, waiting for up to 10 ms for a message.
-		minioscPoll( osc, 15+, rxcb );
+		minioscPoll( osc, 15, rxcb );
 
 		char strtosend[128];
 		sprintf( strtosend, "Frameno: %d", frameno );
