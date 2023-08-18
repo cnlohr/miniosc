@@ -10,8 +10,26 @@ void rxcb( const char * address, const char * type, const void ** parameters )
 {
 	// Called when a message is received.  Check "type" to get parameters 
 	// This message just blindly assumes it's getting a float.
-	printf( "RXCB: %s %s [%p %p] %f\n", address, type, type, parameters[0],
-		(double)*((float*)parameters[0]) );
+	printf( "RXCB: %s %s ", address, type );
+	int p = 0;
+	if( type[0] == 0 ) return; // No type.
+	for( const char * t = type + 1; *t; t++ )
+	{
+		switch( *t )
+		{
+			case 'f':
+				printf( "%f ", (double)*((const float*)(parameters[p])) );
+				break;
+			case 'r': case 'c': case 'i':
+				printf( "%d ", *((const uint32_t*)(parameters[p])) );
+				break;
+			case 's':
+				printf( "%s ", ((const char *)(parameters[p])) );
+				break;
+		}
+		p++;
+	}
+	printf( "\n" );
 }
 
 
@@ -38,7 +56,8 @@ int main()
 
 	OGCreateThread( thread, 0 );
 
-	while( 1 )
+	int j;
+	for( j = 0; j < 10; j++ )
 	{
 		// Poll, waiting for up to 10 ms for a message.
 		minioscPoll( osc, 10, rxcb );
@@ -48,16 +67,17 @@ int main()
 		sprintf( strtosend, "Frameno: %d", frameno );
 		
 		// Immediately send a message
-	//	minioscSend( osc, "/label1", ",s", strtosend );
+		minioscSend( osc, "/label1", ",s", strtosend );
 
 		// Bundle messages together and send.
 		mobundle bun = { 0 };
 		minioscBundle( &bun, "/avatar/parameters/parameter0", ",f", sin(frameno/100.) );//((frameno/20)%256)/255.0 );
 		minioscBundle( &bun, "/avatar/parameters/parameter1", ",f", ((frameno/100)%256)/255.0 );
 		minioscBundle( &bun, "/avatar/parameters/parameter2", ",f", (double)(r&1) );
-	//	minioscBundle( &bun, "/text1", ",s", strtosend );
-	//	minioscBundle( &bun, "/label2", ",i", frameno&1 );
-	//	minioscBundle( &bun, "/box2", ",i", (frameno&255) );
+		minioscBundle( &bun, "/text1", ",s", strtosend );
+		minioscBundle( &bun, "/label2", ",i", frameno&1 );
+		minioscBundle( &bun, "/box2", ",i", (frameno&255) );
+		minioscBundle( &bun, "/composite", ",ifs", frameno, 3.24, "hello" );
 		minioscSendBundle( osc, &bun );
 
 
