@@ -4,8 +4,6 @@
 #define MINIOSC_IMPLEMENTATION
 #include "miniosc.h"
 
-#include "os_generic.h"
-
 int totalRX = 0;
 int totalRXI = 0;
 
@@ -43,23 +41,12 @@ int r = 0;
 miniosc * osc;
 miniosc * osc2;
 
-void * thread( void * v )
-{
-	while( 1 )
-	{
-		getchar();
-		r++;
-	}
-}
-
 int main()
 {
 	// 9001 is the input port, 9000 is the output port.
 	// Each is optional.
 	osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
 	osc2 = minioscInit( 9000, 9001, "127.0.0.1", 0 );
-
-	OGCreateThread( thread, 0 );
 
 	int j;
 	for( j = 0; j < 10; j++ )
