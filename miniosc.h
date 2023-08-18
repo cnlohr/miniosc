@@ -31,12 +31,15 @@
 #define MINIOSC_ERROR_TRANSPORT -5 //May not be fatal.
 #define MINIOSC_ERROR_PROTOCOL  -6
 #define MINIOSC_ERROR_EMPTY     -7
+#define MINIOSC_ERROR_UNINIT    -8
 
-typedef struct
+struct miniosc_t
 {
 	int sock;
 	int portout;
-} miniosc;
+};
+
+typedef struct miniosc_t miniosc;
 
 typedef struct
 {
@@ -46,7 +49,7 @@ typedef struct
 
 // Initialize a miniosc.  It mallocs the data in the return structure.  If there was an
 // error, it will return NULL, and minioscerrorcode will be populated if it was nonnull.
-miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode );
+miniosc * minioscInit( unsigned short portin, unsigned short portout, const char * addressout, int * minioscerrorcode );
 
 // Send an OSC message, this will pull the types off of varargs.
 //  'i', 'c' and 'r': send an int, include an int in your varargs.
@@ -70,6 +73,7 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 // Close the socket. Free the memory.
 void minioscClose( miniosc * osc );
 
+#endif
 
 #ifdef MINIOSC_IMPLEMENTATION
 
@@ -124,13 +128,13 @@ static int _minioscGetQBL( const char * start, char ** here, int length )
 	}
 	h++;
 
-	int thislen = h-start;
+	int thislen = (int)(h-*here);
 	int quad_byte_length = ((thislen + 3) & (~3));
 	*here += quad_byte_length;
 	return thislen;
 }
 
-miniosc * minioscInit( int portin, int portout, const char * addressout, int * minioscerrorcode )
+miniosc * minioscInit( unsigned short portin, unsigned short portout, const char * addressout, int * minioscerrorcode )
 {
 #ifdef MINIOSCWIN
 	WSADATA rep;
@@ -144,7 +148,7 @@ miniosc * minioscInit( int portin, int portout, const char * addressout, int * m
 	}
 #endif
 
-	int sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	int sock = (int)socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 	
 	if( sock == -1 )
 	{
@@ -224,13 +228,17 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 	int err;
 	if( !address || address[0] != '/' || !type || type[0] != ',' ) return MINIOSC_ERROR_PARAMS;
 
-	if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, strlen( address )+1, address ) ) ) return err;
-	if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, strlen( type )+1, type ) ) ) return err;
+	err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, (int)strlen( address ) + 1, address );
+	if( err ) return err;
+
+	err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, (int)strlen( type ) + 1, type );
+	if( err ) return err;
 	
 	const char * t;
 	char c;
-	for( t = type+1; (c=*t); t++ )
+	for( t = type+1; *t; t++ )
 	{
+		c = *t;
 		switch( c )
 		{
 		case 'i':
@@ -239,25 +247,28 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 		{
 			int i = va_arg(ap, unsigned int);
 			i = htonl( i );
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char*)&i ) ) ) return err;
+			err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char *)&i );
+			if( err ) return err;
 			break;
 		}
 		case 'f':
 		{
-			float f = va_arg( ap, double ); //Quirk: var args in C use doubles not floats because of automatic type promotion.
+			float f = (float)va_arg( ap, double ); //Quirk: var args in C use doubles not floats because of automatic type promotion.
 			
 			// Flip endian of float.
 			uint32_t * fi = (uint32_t*)&f;
 			*fi = htonl( *fi );
 
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char*)&f ) ) ) return err;
+			err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char *)&f );
+			if( err ) return err;
 			break;
 		}
 		case 's':
 		{
 			const char * st = va_arg( ap, const char * );
-			int sl = strlen( st ) + 1;
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, sl, st ) ) ) return err;
+			int sl = (int)strlen( st ) + 1;
+			err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, sl, st );
+			if( err ) return err;
 			break;
 		}
 		case 'b':
@@ -265,8 +276,12 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 			int len = va_arg( ap, int );
 			const void * st = va_arg( ap, const void * );
 			int lensend = htonl( len );
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char*)&lensend ) ) ) return err;
-			if( ( err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, (const char*)st ) ) ) return err;
+
+			err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, 4, (const char *)&lensend );
+			if( err ) return err;
+
+			err = _minioscAppend( buffer, bptr, MINIOSCBUFFER, len, (const char *)st );
+			if( err ) return err;
 			break;
 		}
 		case 'F':
@@ -284,6 +299,7 @@ static int minioscEncodeInternal( char * buffer, char ** bptr, int mob, const ch
 
 static int minioscSendData( miniosc * osc, int sendlen, const char * buffer )
 {
+	if ( !osc ) return MINIOSC_ERROR_UNINIT;
 	if( send( osc->sock, buffer, sendlen, MSG_NOSIGNAL ) != sendlen )
 		return MINIOSC_ERROR_TRANSPORT;
 	return 0;
@@ -291,6 +307,7 @@ static int minioscSendData( miniosc * osc, int sendlen, const char * buffer )
 
 int minioscSend( miniosc * osc, const char * address, const char * type, ... )
 {
+	if ( !osc ) return MINIOSC_ERROR_UNINIT;
 	char buffer[MINIOSCBUFFER];
 	char * bptr = buffer;
 	
@@ -301,7 +318,7 @@ int minioscSend( miniosc * osc, const char * address, const char * type, ... )
 	if( ret ) return ret;
 
 	// We have constructed a valid packet.  Send it.
-	int sendlen = bptr - buffer;
+	int sendlen = (int)(bptr - buffer);
 	return minioscSendData( osc, sendlen, buffer );
 }
 
@@ -322,7 +339,7 @@ int minioscBundle( mobundle * mo, const char * address, const char * type, ... )
 	if( ret == 0 )
 	{
 		// No error, write in length of message.
-		int len = mo->bundleplace - (char*)bpl - 4;
+		int len = (int)(mo->bundleplace - (char*)bpl - 4);
 		if( len )
 		{
 			(*bpl) = htonl( len );
@@ -334,19 +351,20 @@ int minioscBundle( mobundle * mo, const char * address, const char * type, ... )
 // Actually send a bundle.
 int minioscSendBundle( miniosc * osc, mobundle * mo )
 {
+	if ( !osc ) return MINIOSC_ERROR_UNINIT;
+
 	// We have constructed a valid packet.  Send it.
 	if( !mo->bundleplace || (void*)mo->bundleplace == (void*)1 ) return MINIOSC_ERROR_EMPTY;
-	int sendlen = mo->bundleplace - mo->bundledata;
+	int sendlen = (int)(mo->bundleplace - mo->bundledata);
 	return minioscSendData( osc, sendlen, mo->bundledata );
 }
 
 static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)( const char * address, const char * type, const void ** parameters ) )
 {
 	const char * name = *eptr;
-	int namelen = _minioscGetQBL( name, eptr, r );
+	int namelen = _minioscGetQBL( buffer, eptr, r );
 	const char * type = *eptr;
-	int typelen = _minioscGetQBL( type, eptr, r );
-
+	int typelen = _minioscGetQBL( buffer, eptr, r );
 
 	if( namelen <= 0 || typelen <= 0 || name[0] != '/' || type[0] != ',' )
 		return MINIOSC_ERROR_PROTOCOL;
@@ -419,7 +437,9 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 {
 	int r;
 	// Do a poll.
-	
+
+	if ( !osc ) return MINIOSC_ERROR_UNINIT;
+
 	#ifdef MINIOSCWIN
 		TIMEVAL timeout = { 0 };
 		timeout.tv_usec = timeoutms * 1000;
@@ -454,9 +474,11 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 		eptr += 16; // "#bundle\0" + timecode (we ignore timecode)
 		while( eptr - buffer < r - 4 )
 		{
-			int32_t tolen = htonl( *((int32_t*)eptr) );
+			int32_t tolen = htonl( *((int32_t*)eptr) ); eptr+=4;
 			char * ep2 = eptr;
+			if( tolen > r - ( eptr - buffer ) ) return MINIOSC_ERROR_OVERFLOW;
 			err = minioscProcess( eptr, &ep2, tolen, callback );
+			eptr += tolen;
 			if( err < 0 ) return err;
 			rxed++;
 		}
@@ -472,11 +494,11 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 
 void minioscClose( miniosc * osc )
 {
+	if ( !osc ) return;
+
 	closesocket( osc->sock );
 	osc->sock = 0;
 	free( osc );
 }
-
-#endif
 
 #endif
