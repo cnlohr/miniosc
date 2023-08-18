@@ -31,17 +31,18 @@ void * thread( void * v )
 
 int main()
 {
-	// 9003 is the input port, 9005 is the output port.
+	// 9001 is the input port, 9000 is the output port.
 	// Each is optional.
 	osc = minioscInit( 9001, 9000, "127.0.0.1", 0 );
-	osc2 = minioscInit( 0, 9993, "127.0.0.1", 0 );
+	osc2 = minioscInit( 9000, 9001, "127.0.0.1", 0 );
 
 	OGCreateThread( thread, 0 );
 
 	while( 1 )
 	{
 		// Poll, waiting for up to 10 ms for a message.
-		minioscPoll( osc, 15, rxcb );
+		minioscPoll( osc, 10, rxcb );
+		minioscPoll( osc2, 0, rxcb );
 
 		char strtosend[128];
 		sprintf( strtosend, "Frameno: %d", frameno );

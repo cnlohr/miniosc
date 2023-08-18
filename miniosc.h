@@ -128,7 +128,7 @@ static int _minioscGetQBL( const char * start, char ** here, int length )
 	}
 	h++;
 
-	int thislen = (int)(h-start);
+	int thislen = (int)(h-*here);
 	int quad_byte_length = ((thislen + 3) & (~3));
 	*here += quad_byte_length;
 	return thislen;
@@ -362,10 +362,9 @@ int minioscSendBundle( miniosc * osc, mobundle * mo )
 static int minioscProcess( char * buffer, char ** eptr, int r, void (*callback)( const char * address, const char * type, const void ** parameters ) )
 {
 	const char * name = *eptr;
-	int namelen = _minioscGetQBL( name, eptr, r );
+	int namelen = _minioscGetQBL( buffer, eptr, r );
 	const char * type = *eptr;
-	int typelen = _minioscGetQBL( type, eptr, r );
-
+	int typelen = _minioscGetQBL( buffer, eptr, r );
 
 	if( namelen <= 0 || typelen <= 0 || name[0] != '/' || type[0] != ',' )
 		return MINIOSC_ERROR_PROTOCOL;
@@ -475,9 +474,11 @@ int minioscPoll( miniosc * osc, int timeoutms, void (*callback)( const char * ad
 		eptr += 16; // "#bundle\0" + timecode (we ignore timecode)
 		while( eptr - buffer < r - 4 )
 		{
-			int32_t tolen = htonl( *((int32_t*)eptr) );
+			int32_t tolen = htonl( *((int32_t*)eptr) ); eptr+=4;
 			char * ep2 = eptr;
+			if( tolen > r - ( eptr - buffer ) ) return MINIOSC_ERROR_OVERFLOW;
 			err = minioscProcess( eptr, &ep2, tolen, callback );
+			eptr += tolen;
 			if( err < 0 ) return err;
 			rxed++;
 		}
