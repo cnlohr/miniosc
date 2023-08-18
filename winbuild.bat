@@ -1,1 +1,1 @@
-tcc main.c -lws2_32
+tcc miniosctest.c -lws2_32

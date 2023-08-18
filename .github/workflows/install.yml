@@ -1,0 +1,31 @@
+name: miniosc
+on:
+  push:
+    branches:
+      - '**' # All branches for now
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Can we do this without a custom "container:"?
+    env:
+      GITHUB_CI: yes
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Install dependencies (apt)
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends
+            build-essential
+      
+    - name: Building
+      run: make
+
+    - name: Testing
+      run: ./miniosctest
+
+#    - name: Uploading
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: apk
+#        path: ./*.apk
