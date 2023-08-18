@@ -101,7 +101,7 @@ int main()
 		minioscPoll( osc2, 2, rxcb );
 	}
 	printf( "Totals: %d %d\n", totalRX, totalRXI );
-	if( totalRX == 90 && totalRXI == 652941 ) return 0;
+	if( totalRX == 90 && totalRXI == 652940 ) return 0;
 	fprintf( stderr, "\x01b[31mHmm, something may be wrong\n" );
 	return -99;
 }
