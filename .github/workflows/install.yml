@@ -6,21 +6,8 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: windows-latest
-    compiler: clang
-    env:
-      GITHUB_CI: yes
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: Building
-      run: make
-    - name: Testing
-      run: ./miniosctest
-
-  build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    os: [ubuntu-latest, windows-latest]
     env:
       GITHUB_CI: yes
     steps:
