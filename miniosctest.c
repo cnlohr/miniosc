@@ -6,6 +6,9 @@
 
 #include "os_generic.h"
 
+int totalRX = 0;
+int totalRXI = 0;
+
 void rxcb( const char * address, const char * type, const void ** parameters )
 {
 	// Called when a message is received.  Check "type" to get parameters 
@@ -13,6 +16,7 @@ void rxcb( const char * address, const char * type, const void ** parameters )
 	printf( "RXCB: %s %s ", address, type );
 	int p = 0;
 	if( type[0] == 0 ) return; // No type.
+	totalRX++;
 	for( const char * t = type + 1; *t; t++ )
 	{
 		switch( *t )
@@ -21,6 +25,7 @@ void rxcb( const char * address, const char * type, const void ** parameters )
 				printf( "%f ", (double)*((const float*)(parameters[p])) );
 				break;
 			case 'r': case 'c': case 'i':
+				totalRXI += *((const uint32_t*)(parameters[p]));
 				printf( "%d ", *((const uint32_t*)(parameters[p])) );
 				break;
 			case 's':
@@ -88,4 +93,15 @@ int main()
 
 		frameno++;
 	}
+	
+	for( j = 0; j < 90; j++ )
+	{
+		// Poll, waiting for up to 10 ms for a message.
+		minioscPoll( osc, 2, rxcb );
+		minioscPoll( osc2, 2, rxcb );
+	}
+	printf( "Totals: %d %d\n", totalRX, totalRXI );
+	if( totalRX == 90 && totalRXI == 652941 ) return 0;
+	fprintf( stderr, "Hmm, something may be wrong\n" );
+	return -99;
 }
