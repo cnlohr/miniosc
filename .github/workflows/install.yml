@@ -17,16 +17,12 @@ jobs:
       run: make
     - name: Testing
       run: ./miniosctest
-           echo test > test.txt
-    - name: Create Awesome Badge
-      uses: schneegans/dynamic-badges-action@v1.6.0
+           echo test > test.ts
+    - uses: actions/upload-artifact@v3
       with:
-        auth: ${{ secrets.GIST_SECRET }}
-        gistID: 3b294d2f1aab6753ec8fd82591ccceb5
-        filename: test.json
-        label: Hello
-        message: World
-        color: orange
+        name: test.ts
+        path: test.ts
+
 
   build-windows:
     runs-on: windows-latest
