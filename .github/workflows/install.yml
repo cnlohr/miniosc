@@ -16,8 +16,8 @@ jobs:
     - name: Building
       run: make
     - name: Testing
-      run: ./miniosctest
-      run: echo test > test.ts
+      run: ./miniosctest |
+           echo test > test.ts
     - uses: actions/upload-artifact@v3
       with:
         name: test.ts
