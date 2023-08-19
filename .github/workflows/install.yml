@@ -26,7 +26,7 @@ jobs:
         gistID: 3b294d2f1aab6753ec8fd82591ccceb5
         filename: test.json
         label: Exe Size
-        message: ${{ ARTIFACT_SIZE }} 
+        message: ${{ env.ARTIFACT_SIZE }} 
         color: orange
 
   build-windows:
