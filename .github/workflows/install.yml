@@ -16,13 +16,15 @@ jobs:
     - name: Building
       run: make
     - name: Testing
-      run: ./miniosctest |
-           echo test > test.ts
-    - uses: actions/upload-artifact@v3
+      run: ./miniosctest
+    - name: Time badge
+      uses: RubbaBoy/BYOB@v1.3.0
       with:
-        name: test.ts
-        path: test.ts
-
+        NAME: time
+        LABEL: 'Updated at'
+        STATUS: ${{ steps.date.outputs.data }}
+        COLOR: blue
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-windows:
     runs-on: windows-latest
