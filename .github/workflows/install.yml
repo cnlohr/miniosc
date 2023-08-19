@@ -16,18 +16,7 @@ jobs:
     - name: Building
       run: make
     - name: Testing
-      run: ./miniosctest |
-           echo "ARTIFACT_SIZE=$(wc -c miniosctest | cut -f1 -d' ')" >> $GITHUB_ENV
-
-#    - name: Create Awesome Badge
-#      uses: schneegans/dynamic-badges-action@v1.6.0
-#      with:
-#        auth: ${{ secrets.GIST_SECRET }}
-#        gistID: 3b294d2f1aab6753ec8fd82591ccceb5
-#        filename: test.json
-#        label: Exe Size
-#        message: ${{ env.ARTIFACT_SIZE }} 
-#        color: orange
+      run: ./miniosctest
 
   build-windows:
     runs-on: windows-latest
