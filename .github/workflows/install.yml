@@ -31,7 +31,7 @@ jobs:
     - name: Building
       run: make
     - name: Testing
-      run: miniosctest.exe
+      run: .\miniosctest.exe
 
 #    - name: Install dependencies (apt)
 #      run: sudo apt-get install -y --no-install-recommends
