@@ -17,7 +17,7 @@ jobs:
       run: make
     - name: Testing
       run: ./miniosctest |
-		echo "ARTIFACT_SIZE=$(wc -c miniosctest | cut -f1)" >> $GITHUB_ENV
+           echo "ARTIFACT_SIZE=$(wc -c miniosctest | cut -f1)" >> $GITHUB_ENV
 
     - name: Create Awesome Badge
       uses: schneegans/dynamic-badges-action@v1.6.0
