@@ -18,7 +18,6 @@ jobs:
     - name: Testing
       run: ./miniosctest
            echo test > test.txt
-
     - name: Create Awesome Badge
       uses: schneegans/dynamic-badges-action@v1.6.0
       with:
