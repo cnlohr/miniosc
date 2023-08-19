@@ -7,7 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Can we do this without a custom "container:"?
     env:
       GITHUB_CI: yes
     steps:
@@ -21,7 +20,6 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    # Can we do this without a custom "container:"?
     env:
       GITHUB_CI: yes
     steps:
@@ -31,13 +29,16 @@ jobs:
     - name: Building
       run: make
     - name: Testing
-      run: .\miniosctest.exe
+      run: ./miniosctest.exe
+    - name: Uploading
+      uses: actions/upload-artifact@v2
+      with:
+        name: exe
+        path: ./*.exe
+
+
 
 #    - name: Install dependencies (apt)
 #      run: sudo apt-get install -y --no-install-recommends
 #            build-essential
-#    - name: Uploading
-#      uses: actions/upload-artifact@v2
-#      with:
-#        name: apk
-#        path: ./*.apk
+
