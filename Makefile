@@ -1,7 +1,7 @@
 all : miniosctest
 
 miniosctest : miniosctest.c
-	gcc -o $@ $^ -lm -Wall
+	$(CC) -o $@ $^ -lm -Wall
 
 clean :
 	rm -rf miniosctest

@@ -24,6 +24,26 @@ jobs:
     - name: Testing
       run: ./miniosctest
 
+
+  build-windows:
+    runs-on: windows-latest
+    # Can we do this without a custom "container:"?
+    env:
+      GITHUB_CI: yes
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Install dependencies (apt)
+      run: sudo apt-get install -y --no-install-recommends
+            build-essential
+      
+    - name: Building
+      run: make
+
+    - name: Testing
+      run: ./miniosctest
+
 #    - name: Uploading
 #      uses: actions/upload-artifact@v2
 #      with:
