@@ -17,14 +17,15 @@ jobs:
       run: make
     - name: Testing
       run: ./miniosctest
-    - name: Time badge
-      uses: RubbaBoy/BYOB@v1.3.0
+    - name: Create Awesome Badge
+      uses: schneegans/dynamic-badges-action@v1.6.0
       with:
-        NAME: time
-        LABEL: 'Updated at'
-        STATUS: ${{ steps.date.outputs.data }}
-        COLOR: blue
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        auth: ${{ secrets.GIST_SECRET }}
+        gistID: 3b294d2f1aab6753ec8fd82591ccceb5
+        filename: test.json
+        label: Hello
+        message: World
+        color: orange
 
   build-windows:
     runs-on: windows-latest
